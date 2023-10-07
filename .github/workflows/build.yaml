@@ -1,0 +1,50 @@
+name: Python Build (Linux/Windows)
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            BUILD_NAME: PyActionSandbox_Windows
+            BUILD_ARGS: -F -w --add-data "res;res" src/main.py
+            CMD_EXEC: PyInstaller
+            FILE_TYPE: ".exe"
+            Z64TARGET: win32
+          - os: ubuntu-latest
+            BUILD_NAME: PyActionSandbox_Linux
+            BUILD_ARGS: -F -w --add-data "res:res" src/main.py
+            CMD_EXEC: pyinstaller
+            FILE_TYPE: ""
+            Z64TARGET: linux64
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        ref: ${{ github.ref }}
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.10"
+    - name: Build z64compress for ${{ matrix.os }}
+      run: git submodule update --init --recursive && cd ../z64compress && make TARGET=${{ matrix.Z64TARGET }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    - name: Build Project for ${{ matrix.os }}
+      run: ${{ matrix.CMD_EXEC }} ${{ matrix.BUILD_ARGS }} -n ${{ matrix.BUILD_NAME }} ${{ matrix.CMD_EXTRAS }}
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ matrix.BUILD_NAME }}
+        path: dist/${{ matrix.BUILD_NAME }}${{ matrix.FILE_TYPE }}
