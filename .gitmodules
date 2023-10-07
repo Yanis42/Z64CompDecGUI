@@ -1,0 +1,6 @@
+[submodule "z64compress"]
+	path = z64compress
+	url = https://github.com/z64tools/z64compress.git
+[submodule "z64decompress"]
+	path = z64decompress
+	url = https://github.com/z64tools/z64decompress.git

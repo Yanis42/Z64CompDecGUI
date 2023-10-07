@@ -1,0 +1,17 @@
+[tool.black]
+# Black configuration (code formatter)
+# See https://black.readthedocs.io/en/stable/usage_and_configuration/the_basics.html
+# or `black --help` for what can go here
+
+line-length = 120
+
+target-version = [
+    'py310', # minimal compatible version
+]
+
+# What files to exclude when running Black on directories (for example `black .`)
+# Use forward slashes for directory delimiters, even on Windows
+# This is a regular expression, escape dots with a backslash like '\.'
+# Note: All whitespace seems to be trimmed (thankfully), probably by Black?
+# extend-exclude = '''
+# '''
