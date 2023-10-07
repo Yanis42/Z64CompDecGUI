@@ -13,7 +13,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """Main initialisation function"""
         super(MainWindow, self).__init__()
 
-        uiPath = path.dirname(path.abspath(__file__)) + "/MainWindow.ui"
+        uiPath = path.dirname(path.abspath(__file__)) + "/../res/MainWindow.ui"
         if not path.isfile(uiPath):
             # temp fix for executables
             uiPath = uiPath.replace("/..", "")
