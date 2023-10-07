@@ -2,11 +2,9 @@ name: Python Build (Linux/Windows)
 
 on:
   push:
-    branches: [ dev ]
-    tags:
-      - 'v*'
+    branches: [ main, dev ]
   pull_request:
-    branches: [ dev ]
+    branches: [ main, dev ]
 
 jobs:
   build:

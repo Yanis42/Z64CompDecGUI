@@ -102,7 +102,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>0</number>
+     <number>1</number>
     </property>
     <widget class="QWidget" name="tab">
      <attribute name="title">
@@ -153,16 +153,16 @@
         </layout>
        </item>
        <item>
-        <widget class="QPushButton" name="compressBtn">
+        <widget class="QPushButton" name="delCacheBtn">
          <property name="text">
-          <string>Compress</string>
+          <string>Delete Cache</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="delCacheBtn">
+        <widget class="QPushButton" name="compressBtn">
          <property name="text">
-          <string>Delete Cache</string>
+          <string>Compress</string>
          </property>
         </widget>
        </item>
@@ -189,6 +189,46 @@
      <attribute name="title">
       <string>Decompress</string>
      </attribute>
+     <widget class="QWidget" name="verticalLayoutWidget_2">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>261</width>
+        <height>161</height>
+       </rect>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout_2">
+       <item>
+        <layout class="QFormLayout" name="formLayout_4">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_4">
+           <property name="text">
+            <string>Codec</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QComboBox" name="codecList_2"/>
+         </item>
+         <item row="1" column="0">
+          <widget class="QCheckBox" name="zzrtlCheckBox">
+           <property name="text">
+            <string>Use ZZRTL Hack</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QPushButton" name="decompressBtn">
+         <property name="text">
+          <string>Decompress</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
     </widget>
    </widget>
    <widget class="QPlainTextEdit" name="outputPlainTextEdit">

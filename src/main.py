@@ -21,11 +21,12 @@ class MainWindow(QtWidgets.QMainWindow):
             uiPath = uiPath.replace("/..", "")
         load_ui.loadUi(uiPath, self)
 
-        self.defaultDir = path.abspath(__file__)
+        self.defaultDir = "./"
         self.sizeTargets = ["32MB", "16MB", "8MB"]
         self.codecs = ["yaz", "DEFLATE", "lzo", "ucl", "aplib"]
         self.games = ["OoT (NTSC 1.0)", "OoT (Debug)", "MM (US)"]
         self.compressProc = QProcess(self)
+        self.decompressProc = QProcess(self)
         self.initConnections()
 
     # connections callbacks
@@ -74,16 +75,18 @@ class MainWindow(QtWidgets.QMainWindow):
         elif game == "OoT (Debug)":
             args.extend(["--dma", "0x12F70,1548", "--compress", "9-14,28-END"])
         elif game == "MM (US)":
-            args.extend([
-                "--dma",
-                "0x1A500,1568",
-                "--compress",
-                "10-14,23,24,31-END",
-                "--skip",
-                "1127",
-                "--repack",
-                "15-20,22",
-            ])
+            args.extend(
+                [
+                    "--dma",
+                    "0x1A500,1568",
+                    "--compress",
+                    "10-14,23,24,31-END",
+                    "--skip",
+                    "1127",
+                    "--repack",
+                    "15-20,22",
+                ]
+            )
         else:
             raise ValueError("ERROR: Game not supported!")
 
@@ -91,13 +94,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.compressProc.setArguments(args)
         self.compressProc.start()
 
-    def decompressROM(self):
-        pass
-
     def removeCacheFolder(self):
         shutil.rmtree("./cache")
 
-    def updateConsoleOutput(self):
+    def updateCompressConsoleOutput(self):
         stderrOutput = self.compressProc.readAllStandardError().data().decode("UTF-8")
         self.outputPlainTextEdit.appendPlainText(stderrOutput)
         self.outputPlainTextEdit.moveCursor(QTextCursor.MoveOperation.End)
@@ -110,21 +110,51 @@ class MainWindow(QtWidgets.QMainWindow):
             elif "updating '" in line or "injecting file" in line:
                 frac = line.split(" ")[2][:-1]
                 fracSplit = frac.split("/")
-                val = round((int(fracSplit[0]) / int(fracSplit[1])) * 100)
+                divisor = int(fracSplit[1])
+                if divisor > 0:
+                    val = round((int(fracSplit[0]) / divisor) * 100)
 
             self.compressProgressBar.setValue(val)
+
+    def updateDecompressConsoleOutput(self):
+        stderrOutput = self.decompressProc.readAllStandardError().data().decode("UTF-8")
+        stdoutOutput = self.decompressProc.readAllStandardOutput().data().decode("UTF-8")
+        self.outputPlainTextEdit.appendPlainText(stderrOutput)
+        self.outputPlainTextEdit.appendPlainText(stdoutOutput)
+        self.outputPlainTextEdit.moveCursor(QTextCursor.MoveOperation.End)
+
+    def decompressROM(self):
+        args = [
+            f"{self.fileInLineEdit.text()}",
+            f"{self.fileOutLineEdit.text()}",
+            "--codec",
+            f"{self.codecList.currentText()}",
+        ]
+
+        if self.zzrtlCheckBox.isChecked():
+            args.append("--dmaext")
+
+        self.decompressProc.setProgram(self.openCompressExeLineEdit.text())
+        self.decompressProc.setArguments(args)
+        self.decompressProc.start()
 
     def initConnections(self):
         """Initialises the callbacks"""
         self.openFileInBtn.clicked.connect(self.openFileIn)
         self.openFileOutBtn.clicked.connect(self.openFileOut)
         self.openCompressExeBtn.clicked.connect(self.openExecutable)
+
         self.fileSizeTargetList.addItems(self.sizeTargets)
         self.codecList.addItems(self.codecs)
         self.gameList.addItems(self.games)
         self.compressBtn.clicked.connect(self.compressROM)
         self.delCacheBtn.clicked.connect(self.removeCacheFolder)
-        self.compressProc.readyReadStandardError.connect(self.updateConsoleOutput)
+        self.compressProc.readyReadStandardError.connect(self.updateCompressConsoleOutput)
+
+        self.codecs.remove("DEFLATE")
+        self.decompressProc.readyReadStandardError.connect(self.updateDecompressConsoleOutput)
+        self.decompressBtn.clicked.connect(self.decompressROM)
+        self.codecList_2.addItems(self.codecs)
 
 
 # start the app
