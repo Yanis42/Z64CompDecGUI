@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
+import shutil
+
 from PyQt6 import QtWidgets
+from PyQt6.QtGui import QTextCursor
+from PyQt6.QtCore import QProcess
 from PyQt6.uic import load_ui
-from pathlib import Path
 from sys import exit, argv
-from os import path, name as osName
-from subprocess import run, PIPE
+from os import path
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -19,7 +21,11 @@ class MainWindow(QtWidgets.QMainWindow):
             uiPath = uiPath.replace("/..", "")
         load_ui.loadUi(uiPath, self)
 
-        self.defaultDir = str(Path.home())
+        self.defaultDir = path.abspath(__file__)
+        self.sizeTargets = ["32MB", "16MB", "8MB"]
+        self.codecs = ["yaz", "DEFLATE", "lzo", "ucl", "aplib"]
+        self.games = ["OoT (NTSC 1.0)", "OoT (Debug)", "MM (US)"]
+        self.compressProc = QProcess(self)
         self.initConnections()
 
     # connections callbacks
@@ -49,37 +55,76 @@ class MainWindow(QtWidgets.QMainWindow):
             pass
 
     def compressROM(self):
-        fileIn: str = self.fileInLineEdit.text()
-        fileOut: str = self.fileOutLineEdit.text()
-        executable: str = self.openCompressExeLineEdit.text()
-        codec: str = self.codecList.currentText()
         game: str = self.gameList.currentText()
-        otherFlags = ""
+        args = [
+            f"--in",
+            f"{self.fileInLineEdit.text()}",
+            "--out",
+            f"{self.fileOutLineEdit.text()}",
+            "--codec",
+            f"{self.codecList.currentText()}",
+            "--cache",
+            "cache",
+            "--threads",
+            "4",
+        ]
 
         if game == "OoT (NTSC 1.0)":
-            otherFlags = '--dma "0x7430,1526" --compress "10-14,27-END"'
+            args.extend(["--dma", "0x7430,1526", "--compress", "10-14,27-END"])
         elif game == "OoT (Debug)":
-            otherFlags = '--dma "0x12F70,1548" --compress "9-14,28-END"'
+            args.extend(["--dma", "0x12F70,1548", "--compress", "9-14,28-END"])
         elif game == "MM (US)":
-            otherFlags = '--dma "0x1A500,1568" --compress "10-14,23,24,31-END" --skip "1127" --repack "15-20,22"'
+            args.extend([
+                "--dma",
+                "0x1A500,1568",
+                "--compress",
+                "10-14,23,24,31-END",
+                "--skip",
+                "1127",
+                "--repack",
+                "15-20,22",
+            ])
         else:
             raise ValueError("ERROR: Game not supported!")
 
-        compressArgs = f'--in "{fileIn}" --out "{fileOut}" --codec {codec} --cache cache ' + otherFlags + " --threads 4"
-        run(f"{executable} {compressArgs}", shell=True)
+        self.compressProc.setProgram(self.openCompressExeLineEdit.text())
+        self.compressProc.setArguments(args)
+        self.compressProc.start()
 
     def decompressROM(self):
         pass
+
+    def removeCacheFolder(self):
+        shutil.rmtree("./cache")
+
+    def updateConsoleOutput(self):
+        stderrOutput = self.compressProc.readAllStandardError().data().decode("UTF-8")
+        self.outputPlainTextEdit.appendPlainText(stderrOutput)
+        self.outputPlainTextEdit.moveCursor(QTextCursor.MoveOperation.End)
+
+        for line in stderrOutput.split("\n"):
+            val = self.compressProgressBar.value()
+
+            if "success!" in line:
+                val = 100
+            elif "updating '" in line or "injecting file" in line:
+                frac = line.split(" ")[2][:-1]
+                fracSplit = frac.split("/")
+                val = round((int(fracSplit[0]) / int(fracSplit[1])) * 100)
+
+            self.compressProgressBar.setValue(val)
 
     def initConnections(self):
         """Initialises the callbacks"""
         self.openFileInBtn.clicked.connect(self.openFileIn)
         self.openFileOutBtn.clicked.connect(self.openFileOut)
         self.openCompressExeBtn.clicked.connect(self.openExecutable)
-        self.fileSizeTargetList.addItems(["32MB", "16MB", "8MB"])
-        self.codecList.addItems(["yaz", "DEFLATE", "lzo", "ucl", "aplib"])
-        self.gameList.addItems(["OoT (NTSC 1.0)", "OoT (Debug)", "MM (US)"])
+        self.fileSizeTargetList.addItems(self.sizeTargets)
+        self.codecList.addItems(self.codecs)
+        self.gameList.addItems(self.games)
         self.compressBtn.clicked.connect(self.compressROM)
+        self.delCacheBtn.clicked.connect(self.removeCacheFolder)
+        self.compressProc.readyReadStandardError.connect(self.updateConsoleOutput)
 
 
 # start the app

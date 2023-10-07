@@ -2,11 +2,11 @@ name: Python Build (Linux/Windows)
 
 on:
   push:
-    branches: [ main ]
+    branches: [ dev ]
     tags:
       - 'v*'
   pull_request:
-    branches: [ main ]
+    branches: [ dev ]
 
 jobs:
   build:
@@ -16,13 +16,13 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            BUILD_NAME: Z64ComDecGUI_Windows
+            BUILD_NAME: Dev_Z64ComDecGUI_Windows
             BUILD_ARGS: -F -w --add-data "res;res" src/main.py
             CMD_EXEC: PyInstaller
             FILE_TYPE: ".exe"
             Z64TARGET: win32
           - os: ubuntu-latest
-            BUILD_NAME: Z64ComDecGUI_Linux
+            BUILD_NAME: Dev_Z64ComDecGUI_Linux
             BUILD_ARGS: -F -w --add-data "res:res" src/main.py
             CMD_EXEC: pyinstaller
             FILE_TYPE: ""
