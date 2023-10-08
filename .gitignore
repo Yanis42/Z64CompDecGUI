@@ -1,2 +1,8 @@
-cache/
+# Files
 *.z64
+*.spec
+
+# Folders
+cache
+build
+dist

@@ -2,12 +2,13 @@
 
 import shutil
 
+from sys import exit, argv
+from os import path
+from platform import system
 from PyQt6 import QtWidgets
 from PyQt6.QtGui import QTextCursor
 from PyQt6.QtCore import QProcess
 from PyQt6.uic import load_ui
-from sys import exit, argv
-from os import path
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -29,7 +30,26 @@ class MainWindow(QtWidgets.QMainWindow):
         self.decompressProc = QProcess(self)
         self.initConnections()
 
+    def print(self, content: str):
+        self.outputPlainTextEdit.appendPlainText(content + ("\n" if not content.endswith("\n") else ""))
+
+    def optionsSetEnabled(self, isEnabled: bool):
+        self.zzrtlCheckBox.setEnabled(isEnabled)
+        self.openFileInBtn.setEnabled(isEnabled)
+        self.openFileOutBtn.setEnabled(isEnabled)
+        self.openCompressExeBtn.setEnabled(isEnabled)
+        self.fileSizeTargetList.setEnabled(isEnabled)
+        self.codecList.setEnabled(isEnabled)
+        self.gameList.setEnabled(isEnabled)
+        self.compressBtn.setEnabled(isEnabled)
+        self.delCacheBtn.setEnabled(isEnabled)
+        self.decompressBtn.setEnabled(isEnabled)
+        self.codecList_2.setEnabled(isEnabled)
+
     # connections callbacks
+
+    def enableOptions(self):
+        self.optionsSetEnabled(True)
 
     def openFileIn(self):
         """Returns the splits file path"""
@@ -56,6 +76,7 @@ class MainWindow(QtWidgets.QMainWindow):
             pass
 
     def compressROM(self):
+        self.optionsSetEnabled(False)
         game: str = self.gameList.currentText()
         args = [
             f"--in",
@@ -95,7 +116,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.compressProc.start()
 
     def removeCacheFolder(self):
-        shutil.rmtree("./cache")
+        try:
+            shutil.rmtree("./cache")
+            self.outputPlainTextEdit.appendPlainText("cache deleted successfully!\n")
+        except FileNotFoundError:
+            self.outputPlainTextEdit.appendPlainText("cache not found!\n")
 
     def updateCompressConsoleOutput(self):
         stderrOutput = self.compressProc.readAllStandardError().data().decode("UTF-8")
@@ -105,14 +130,19 @@ class MainWindow(QtWidgets.QMainWindow):
         for line in stderrOutput.split("\n"):
             val = self.compressProgressBar.value()
 
-            if "success!" in line:
-                val = 100
-            elif "updating '" in line or "injecting file" in line:
-                frac = line.split(" ")[2][:-1]
-                fracSplit = frac.split("/")
-                divisor = int(fracSplit[1])
-                if divisor > 0:
-                    val = round((int(fracSplit[0]) / divisor) * 100)
+            try:
+                windowsFix = line.endswith(":") if system() == "Windows" else True
+                if "success!" in line:
+                    val = 100
+                    self.optionsSetEnabled(True)
+                elif ("updating '" in line or "injecting file" in line) and windowsFix:
+                    frac = line.split(" ")[2][:-1]
+                    fracSplit = frac.split("/")
+                    divisor = int(fracSplit[1])
+                    if divisor > 0:
+                        val = round((int(fracSplit[0]) / divisor) * 100)
+            except Exception as e:
+                self.print(f"An error occured while updating the progression:\n" + e.with_traceback())
 
             self.compressProgressBar.setValue(val)
 
@@ -124,6 +154,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.outputPlainTextEdit.moveCursor(QTextCursor.MoveOperation.End)
 
     def decompressROM(self):
+        self.optionsSetEnabled(False)
         args = [
             f"{self.fileInLineEdit.text()}",
             f"{self.fileOutLineEdit.text()}",
@@ -150,9 +181,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.compressBtn.clicked.connect(self.compressROM)
         self.delCacheBtn.clicked.connect(self.removeCacheFolder)
         self.compressProc.readyReadStandardError.connect(self.updateCompressConsoleOutput)
+        self.compressProc.finished.connect(self.enableOptions)
 
         self.codecs.remove("DEFLATE")
         self.decompressProc.readyReadStandardError.connect(self.updateDecompressConsoleOutput)
+        self.decompressProc.finished.connect(self.enableOptions)
         self.decompressBtn.clicked.connect(self.decompressROM)
         self.codecList_2.addItems(self.codecs)
 
