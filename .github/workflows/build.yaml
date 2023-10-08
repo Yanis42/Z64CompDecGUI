@@ -2,9 +2,9 @@ name: Build (Linux/Windows)
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [ dev ]
   pull_request:
-    branches: [ main, dev ]
+    branches: [ dev ]
 
 jobs:
   build:
@@ -15,13 +15,13 @@ jobs:
         include:
           - os: windows-latest
             BUILD_NAME: Dev_Z64ComDecGUI_Windows
-            BUILD_ARGS: -F -w --noupx --add-data "res;res" src/main.py
+            BUILD_ARGS: -F -w --add-data "res;res" src/main.py
             CMD_EXEC: PyInstaller
             FILE_TYPE: ".exe"
             Z64TARGET: win32
           - os: ubuntu-latest
             BUILD_NAME: Dev_Z64ComDecGUI_Linux
-            BUILD_ARGS: -F -w --noupx --add-data "res:res" src/main.py
+            BUILD_ARGS: -F -w --add-data "res:res" src/main.py
             CMD_EXEC: pyinstaller
             FILE_TYPE: ""
             Z64TARGET: linux64
