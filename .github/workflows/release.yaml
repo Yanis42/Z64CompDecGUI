@@ -1,13 +1,26 @@
-name: Build (Linux/Windows)
+name: Build & Release (Linux/Windows)
 
 on:
   push:
-    branches: [ main, dev ]
-  pull_request:
-    branches: [ main, dev ]
+    tags: [ '*' ]
 
 jobs:
+  release:
+    permissions: write-all
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        ref: ${{ github.ref }}
+    - name: Create Release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: gh release create ${{ github.ref_name }} -F release_notes/${{ github.ref_name }}.md
+
   build:
+    needs: release
+    permissions: write-all
     name: Build
     runs-on: ${{ matrix.os }}
     strategy:
@@ -20,7 +33,7 @@ jobs:
             FILE_TYPE: ".exe"
             Z64TARGET: win32
           - os: ubuntu-latest
-            BUILD_NAME: Dev_Z64ComDecGUI_Linux
+            BUILD_NAME: Test_Release_Z64ComDecGUI_Linux
             BUILD_ARGS: -F -w --add-data "res:res" src/main.py
             CMD_EXEC: pyinstaller
             FILE_TYPE: ""
@@ -41,8 +54,7 @@ jobs:
         pip install -r requirements.txt
     - name: Build Project for ${{ matrix.os }}
       run: ${{ matrix.CMD_EXEC }} ${{ matrix.BUILD_ARGS }} -n ${{ matrix.BUILD_NAME }} ${{ matrix.CMD_EXTRAS }}
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: ${{ matrix.BUILD_NAME }}
-        path: dist/${{ matrix.BUILD_NAME }}${{ matrix.FILE_TYPE }}
+    - name: Upload Release Artifacts
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: gh release upload ${{ github.ref_name }} dist/${{ matrix.BUILD_NAME }}${{ matrix.FILE_TYPE }}
